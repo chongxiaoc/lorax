@@ -6,3 +6,6 @@ megablocks:
 build-megablocks: megablocks
 	cd megablocks && git fetch && git checkout $(megablocks_commit)
 	cd megablocks && python setup.py build
+
+install-megablocks: build-megablocks
+	cd megablocks && python setup.py install

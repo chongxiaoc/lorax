@@ -1,19 +1,23 @@
 flash_att_v2_commit := 2c3baba4a63c4007c8a132c5380edc9430f88a22
 
 flash-attention-v2:
-    # Clone flash attention
+	# Clone flash attention
 	pip install packaging
 	git clone https://github.com/HazyResearch/flash-attention.git flash-attention-v2
 
 build-flash-attention-v2: flash-attention-v2
 	cd flash-attention-v2 && git fetch && git checkout $(flash_att_v2_commit)
 	cd flash-attention-v2 && python setup.py build
+	# layer_nor
+	cd flash-attention-v2/csrc/layer_norm && python setup.py build && python setup.py install
+	# rotary
+	cd flash-attention-v2/csrc/rotary && python setup.py build && python setup.py install
 
-# install-flash-attention-v2: build-flash-attention-v2
-# 	cd flash-attention-v2 && python setup.py install
+install-flash-attention-v2: build-flash-attention-v2
+	cd flash-attention-v2 && python setup.py install
 
 # Install from pip because the target commit is actually a release commit
 # and the pip wheels do not require nvcc to be installed.
 # Reference: https://github.com/Dao-AILab/flash-attention/issues/509
-install-flash-attention-v2:
-	FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE pip install flash-attn==2.3.0 --no-build-isolation
+# install-flash-attention-v2:
+#       FLASH_ATTENTION_SKIP_CUDA_BUILD=TRUE pip install flash-attn==2.3.0 --no-build-isolation

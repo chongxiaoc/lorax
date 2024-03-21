@@ -1,0 +1,56 @@
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
+
+# Install prerequisite packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  build-essential \
+  ca-certificates \
+  curl \
+  gcc \
+  git \
+  libssl-dev \
+  pip \
+  pkg-config \
+  python3 \
+  python3-dev \
+  sudo \
+  unzip \
+  vim \
+  wget \
+  parallel \
+  unzip \
+  && rm -rf /var/lib/apt/lists/*
+
+# Overwrite
+RUN ln -sf /usr/bin/python3 /usr/bin/python
+
+# Get Rust
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
+
+# Install Protoc
+ENV PROTOC_ZIP=protoc-21.12-linux-x86_64.zip
+RUN curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v21.12/$PROTOC_ZIP
+RUN sudo unzip -o $PROTOC_ZIP -d /usr/local bin/protoc
+RUN sudo unzip -o $PROTOC_ZIP -d /usr/local 'include/*'
+RUN rm -f $PROTOC_ZIP
+
+
+RUN pip3 install --upgrade pip
+
+# Install pip packages from requirements.txt
+RUN pip3 install -r requirements_chongxiaoc.txt
+
+# Fix bitsandbytes missing symbol issue
+# See https://github.com/TimDettmers/bitsandbytes/issues/156
+CMD cp /usr/local/lib/python3.9/dist-packages/bitsandbytes/libbitsandbytes_cuda118.so /usr/local/lib/python3.9/dist-packages/bitsandbytes/libbitsandbytes_cpu.so
+
+
+# Checkout LoRAX
+WORKDIR /repo
+RUN git clone -b local_dev https://github.com/chongxiaoc/lorax.git; \
+  cd lorax; \
+  git submodule update --init --recursive
+
+ENV TORCH_CUDA_ARCH_LIST="8.0;8.6+PTX"
+
+WORKDIR /repo/lorax

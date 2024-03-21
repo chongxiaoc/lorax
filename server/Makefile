@@ -16,18 +16,22 @@ gen-server:
 	find lorax_server/pb/ -type f -name "*.py" -print0 -exec sed -i -e 's/^\(import.*pb2\)/from . \1/g' {} \;
 	touch lorax_server/pb/__init__.py
 
-install: gen-server
+install: gen-server install-vllm install-megablocks install-eetq install-flash-attention-v2
 	pip install pip --upgrade
-	pip install torch==2.2.0
+	pip install torch==2.2.1 --index-url https://download.pytorch.org/whl/cu118
 	pip install -r requirements.txt
 	pip install -e ".[bnb, accelerate, quantize, peft, outlines]"
+	cd exllamav2_kernels && TORCH_CUDA_ARCH_LIST="8.0;8.6+PTX" python setup.py build && python setup.py install
+	cd awq_kernels && TORCH_CUDA_ARCH_LIST="8.0;8.6+PTX" python setup.py build && python setup.py install
+	cd custom_kernels && python setup.py build && python setup.py install
+	cd punica_kernels && python setup.py build && python setup.py install
 
 run-dev:
 	# SAFETENSORS_FAST_GPU=1 python -m torch.distributed.run --nproc_per_node=1 lorax_server/cli.py serve gpt2
 	# SAFETENSORS_FAST_GPU=1 python -m torch.distributed.run --nproc_per_node=1 lorax_server/cli.py serve meta-llama/Llama-2-7b-hf --sharded
 	SAFETENSORS_FAST_GPU=1 python -m torch.distributed.run --nproc_per_node=1 lorax_server/cli.py serve mistralai/Mistral-7B-Instruct-v0.1 --sharded
 	# SAFETENSORS_FAST_GPU=1 python -m torch.distributed.run --nproc_per_node=2 lorax_server/cli.py serve mistralai/Mistral-7B-v0.1 --sharded
-	# SAFETENSORS_FAST_GPU=1 python -m torch.distributed.run --nproc_per_node=1 lorax_server/cli.py serve flozi00/Mistral-7B-german-assistant-v5-4bit-autogptq --quantize gptq
+	# # SAFETENSORS_FAST_GPU=1 python -m torch.distributed.run --nproc_per_node=1 lorax_server/cli.py serve flozi00/Mistral-7B-german-assistant-v5-4bit-autogptq --quantize gptq
 
 export-requirements:
 	poetry export -o requirements.txt -E bnb --without-hashes
